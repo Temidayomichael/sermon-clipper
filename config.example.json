@@ -1,0 +1,11 @@
+{
+  "preacher": {
+    "name": "Pastor Jane Doe",
+    "church": "Grace Community Church",
+    "audience": "young working adults, many first-generation professionals",
+    "region": "Lagos, Nigeria",
+    "languages": "English, with occasional Pidgin and Yoruba asides"
+  },
+  "vocab": "Lekki, Ikeja, Yaba, Danfo",
+  "brand": { "accent": "#FFD43B" }
+}

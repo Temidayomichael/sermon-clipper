@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storyboard · __JOB__</title>
+<style>
+  :root { --bg:#0e0f12; --card:#16181d; --line:#2a2d35; --text:#ecedf0; --muted:#9aa0ab; --accent:#ffd43b; --ok:#3ccf7a; --warn:#ff9f43; --bad:#ff6b6b; --navy:#14204A; --gold:#E9B824; --red:#D8262F; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system, system-ui, sans-serif; }
+  header { position:sticky; top:0; z-index:20; display:flex; gap:12px; align-items:center; padding:12px 20px; background:#0e0f12f2; border-bottom:1px solid var(--line); backdrop-filter:blur(6px); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; flex:1; min-width:200px; }
+  .count { color:var(--muted); font-size:14px; }
+  button, select { font:inherit; border:1px solid var(--line); background:#22252c; color:var(--text); padding:6px 12px; border-radius:8px; cursor:pointer; }
+  button.primary { background:var(--accent); color:#111; border-color:var(--accent); font-weight:600; }
+  button.small { padding:3px 8px; font-size:13px; }
+  .wrap { display:grid; grid-template-columns:1fr 340px; gap:20px; padding:20px; }
+  .player { position:sticky; top:72px; align-self:start; }
+  video { width:100%; border-radius:10px; background:#000; }
+  .now { margin-top:8px; color:var(--muted); font-size:13px; }
+  .help { margin-top:14px; font-size:13px; color:var(--muted); line-height:1.5; }
+  .help b { color:var(--text); }
+  .clip { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:22px; }
+  .clip.approved { border-color:var(--ok); }
+  .clip.changes { border-color:var(--warn); }
+  .clip.dropped { opacity:.5; }
+  .top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .num { font-weight:800; color:var(--muted); }
+  .score { background:#2a2d35; border-radius:6px; padding:2px 8px; font-weight:700; color:var(--accent); }
+  .len { color:var(--muted); font-size:13px; }
+  .status { margin-left:auto; display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .status button { border:0; border-radius:0; background:transparent; color:var(--muted); padding:6px 10px; font-size:13px; }
+  .status button.on.approved { background:var(--ok); color:#06210f; font-weight:700; }
+  .status button.on.changes { background:var(--warn); color:#2a1600; font-weight:700; }
+  .status button.on.dropped { background:var(--bad); color:#2a0606; font-weight:700; }
+  input[type=text], textarea { width:100%; background:#0f1115; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font:inherit; }
+  input.hook { font-weight:700; font-size:18px; margin-top:10px; }
+  textarea { resize:vertical; min-height:54px; }
+  .why { color:var(--muted); font-size:13px; margin-top:6px; }
+  .strip { display:flex; gap:14px; overflow-x:auto; padding:14px 2px 6px; }
+  .beat { flex:0 0 172px; }
+  .frame { position:relative; width:172px; height:306px; border-radius:14px; overflow:hidden; background:#000 center/cover no-repeat; border:1px solid var(--line); cursor:pointer; }
+  .frame .hb { position:absolute; top:12px; left:10px; right:10px; background:#fff; color:#0b0b0d; font:800 10px/1.15 Impact, "Arial Narrow", sans-serif; text-transform:uppercase; text-align:center; padding:5px 6px; border-radius:6px; }
+  .frame .cap { position:absolute; bottom:58px; left:6px; right:6px; text-align:center; font:900 13px/1.15 -apple-system, sans-serif; text-transform:uppercase; color:#fff; -webkit-text-stroke:3px #000; paint-order:stroke fill; }
+  .frame .panel { position:absolute; top:150px; left:10px; right:10px; background:rgba(10,10,14,.85); border-radius:9px; padding:7px 8px; font-size:10px; line-height:1.3; }
+  .panel .t { color:var(--accent); font:800 10px Impact, sans-serif; text-transform:uppercase; margin-bottom:3px; }
+  .frame .kw { position:absolute; top:150px; left:0; right:0; text-align:center; font:900 30px Impact, sans-serif; color:var(--accent); -webkit-text-stroke:4px #000; paint-order:stroke fill; text-transform:uppercase; }
+  .frame .kin { position:absolute; top:72px; left:8px; right:8px; text-align:center; color:#fff; font:700 11px/1.25 -apple-system, sans-serif; text-shadow:0 2px 6px #000; }
+  .kin .em { font:italic 18px Georgia, serif; color:#F7E9BC; }
+  .kin .key { display:block; font:900 30px/1 -apple-system, sans-serif; color:var(--red); text-shadow:2px 3px 0 var(--navy); text-transform:lowercase; }
+  .frame .tag { position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,.7); border-radius:5px; padding:1px 6px; font-size:11px; color:var(--accent); font-weight:700; text-transform:uppercase; }
+  .frame .play { position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.7); border-radius:5px; padding:1px 7px; font-size:12px; }
+  .bmeta { font-size:12px; color:var(--muted); margin:6px 2px 4px; }
+  .bwords { font-size:12px; color:#c9ccd3; max-height:52px; overflow:hidden; margin:0 2px 6px; }
+  .beat input, .beat select { font-size:12px; padding:4px 6px; margin-top:4px; width:100%; }
+  .beat .note { border-color:#3a3320; }
+  .transcript { margin-top:10px; padding:12px; background:#0f1115; border:1px solid var(--line); border-radius:10px; font-size:14px; line-height:1.8; }
+  .transcript span { cursor:pointer; border-radius:3px; padding:0 1px; }
+  .transcript span:hover { background:#2a2d35; }
+  .transcript .cut { color:#5b606b; text-decoration:line-through; }
+  .transcript .trim { color:#ff8a8a; text-decoration:line-through; }
+  .transcript .hl { color:var(--accent); font-weight:700; }
+  .transcript .sel { background:#3a2f0b; }
+  .tools { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; font-size:13px; color:var(--muted); }
+  .legend span { margin-right:12px; }
+  details { margin-top:10px; }
+  summary { cursor:pointer; color:var(--muted); font-size:14px; }
+  .field { margin-top:8px; }
+  .field > span { display:block; font-size:12px; color:var(--muted); margin-bottom:3px; text-transform:uppercase; letter-spacing:.04em; }
+  @media (max-width: 960px) { .wrap { grid-template-columns:1fr; } .player { position:static; order:-1; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Storyboard · __JOB__</h1>
+  <span class="count" id="count"></span>
+  <button class="primary" id="save">Save</button>
+</header>
+<div class="wrap">
+  <main id="list"></main>
+  <aside class="player">
+    <video id="v" src="/source.mp4" controls preload="metadata"></video>
+    <div class="now" id="now">Click any frame, word or ▶ to preview.</div>
+    <div class="help">
+      <b>How to use</b><br>
+      • Each frame is one beat of the finished short.<br>
+      • Edit hooks, pictures and words right on the frames.<br>
+      • <b>✂ Trim</b>: click the first and last word of a part to cut; click a red word to undo.<br>
+      • Leave <b>notes</b> for anything else, set a status, press <b>Save</b>.<br>
+      • Then tell Claude <b>"revise __JOB__"</b> to apply your notes.
+    </div>
+  </aside>
+</div>
+<script>
+let plan = null, sb = null, stopAt = null, trimMode = {}, trimStart = {}, dirty = false;
+const v = document.getElementById('v');
+const fmt = s => { s = Math.max(0, s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = Math.floor(s%60);
+  return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0'); };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = w => String(w).toLowerCase().replace(/[^\w']/g, '');
+const STATUSES = [['approved','Approve'],['changes','Needs changes'],['dropped','Drop']];
+
+v.addEventListener('timeupdate', () => { if (stopAt && v.currentTime >= stopAt) { v.pause(); stopAt = null; } });
+function play(t0, t1, label) { v.currentTime = t0; stopAt = t1; v.play(); document.getElementById('now').innerHTML = `Playing <b>${esc(label)}</b> (${fmt(t0)} → ${fmt(t1)})`; }
+
+function count() {
+  const n = s => plan.clips.filter(c => (c.status || (c.approved ? 'approved' : '')) === s).length;
+  document.getElementById('count').textContent = `${n('approved')} approved · ${n('changes')} need changes · ${n('dropped')} dropped · ${plan.clips.length} total` + (dirty ? ' · unsaved' : '');
+}
+
+function mock(c, b, sbClip) {
+  const g = b.g !== undefined ? c.graphics[b.g] : null;
+  const words = b.words || '';
+  const capWords = words.split(' ').slice(0, 4).join(' ');
+  let bg = `url(/thumb/${(b.t + 0.6).toFixed(1)}.jpg)`, overlay = '';
+  if (g && g.type === 'cutaway') {
+    const isNew = g.visual && g.visual.startsWith('new:');
+    bg = g.visual && g.visual.startsWith('broll:') ? 'linear-gradient(#14204A,#E9B824)'
+      : isNew || !sb.illustrations.includes(g.visual) ? 'url(/illus/glow.png)' : `url(/illus/${esc(g.visual)}.png)`;
+    const em = new Set((g.emphasis || []).map(norm)), key = norm(g.keyword || '');
+    const ws = words.split(' ').slice(0, 10).map(w => norm(w) === key ? `<span class="key">${esc(w)}</span>` : em.has(norm(w)) ? `<span class="em">${esc(w)}</span>` : esc(w)).join(' ');
+    overlay = `<div class="kin">${ws}</div>` + (isNew ? `<div class="panel" style="top:auto;bottom:40px;border:1px dashed var(--warn)"><div class="t" style="color:var(--warn)">New illustration needed</div>${esc(g.visual.slice(4))}</div>` : '');
+  } else if (g && g.type === 'list') {
+    overlay = `<div class="panel"><div class="t">${esc(g.title)}</div>${(g.items||[]).map((x,i)=>`${i+1}. ${esc(x)}`).join('<br>')}</div><div class="cap">${esc(capWords)}</div>`;
+  } else if (g && g.type === 'quote') {
+    overlay = `<div class="panel">“${esc(g.text)}”</div><div class="cap">${esc(capWords)}</div>`;
+  } else if (g && g.type === 'scripture') {
+    overlay = `<div class="panel"><div class="t">${esc(g.ref)}</div>${esc(g.text || '')}</div><div class="cap">${esc(capWords)}</div>`;
+  } else if (g && g.type === 'keyword') {
+    overlay = `<div class="kw">${esc(g.text)}</div><div class="cap">${esc(capWords)}</div>`;
+  } else {
+    overlay = `<div class="cap">${esc(capWords)}</div>`;
+  }
+  return `<div class="frame" style="background-image:${bg}" data-play="${b.t}" data-label="${esc(b.kind)}">
+    <div class="hb">${esc(c.hook)}</div>${overlay}
+    <div class="tag">${esc(b.kind)}</div><div class="play">▶</div></div>`;
+}
+
+function controls(ci, c, b) {
+  const g = b.g !== undefined ? c.graphics[b.g] : null;
+  const key = `${b.kind}@${b.t.toFixed(1)}`;
+  const note = (c.beat_notes || {})[key] || '';
+  let f = '';
+  const inp = (k, val, ph) => `<input type="text" data-ci="${ci}" data-g="${b.g}" data-k="${k}" value="${esc(val)}" placeholder="${ph}">`;
+  if (g) {
+    if (g.type === 'cutaway') {
+      const opts = sb.illustrations.map(n => `<option ${g.visual===n?'selected':''}>${n}</option>`).join('');
+      f += `<select data-ci="${ci}" data-g="${b.g}" data-k="visual">${opts}${g.visual && !sb.illustrations.includes(g.visual) ? `<option selected>${esc(g.visual)}</option>` : ''}</select>`;
+      f += inp('emphasis', (g.emphasis||[]).join(', '), 'italic words');
+      f += inp('keyword', g.keyword || '', 'red keyword');
+    } else if (g.type === 'list') { f += inp('title', g.title, 'list title') + inp('items', (g.items||[]).join(', '), 'items, comma separated'); }
+    else if (g.type === 'quote' || g.type === 'keyword') { f += inp('text', g.text, 'text'); }
+    else if (g.type === 'scripture') { f += inp('ref', g.ref, 'reference') + inp('text', g.text || '', 'verse text'); }
+    f += `<button class="small" data-del="${ci}:${b.g}" title="Remove this graphic">✕ remove</button>`;
+  }
+  f += `<input type="text" class="note" data-ci="${ci}" data-note="${key}" value="${esc(note)}" placeholder="note for this beat…">`;
+  return f;
+}
+
+function render() {
+  const list = document.getElementById('list');
+  list.innerHTML = plan.clips.map((c, ci) => {
+    const s = sb.clips.find(x => x.id === c.id) || { beats: [], words: [], est: 0, raw: 0 };
+    const status = c.status || (c.approved ? 'approved' : '');
+    const words = s.words.map((w, wi) => `<span data-ci="${ci}" data-wi="${wi}" class="${w.trimmed ? 'trim' : !w.kept ? 'cut' : w.hl ? 'hl' : ''} ${trimStart[ci] === wi ? 'sel' : ''}">${esc(w.w)}</span>`).join(' ');
+    return `<section class="clip ${status}">
+      <div class="top">
+        <span class="num">#${ci + 1}</span><span class="score" title="predicted performance">${esc(c.score ?? '–')}</span>
+        ${c.virality && c.virality.score !== undefined ? `<span class="len" title="viral-clips rubric (0-20)">virality <b style="color:${c.virality.score >= 15 ? 'var(--ok)' : c.virality.score >= 11 ? 'var(--warn)' : 'var(--bad)'}">${c.virality.score}/20</b>${(c.virality.weakest || []).length ? ' · weakest: ' + esc(c.virality.weakest.join(', ')) : ''}</span>` : ''}
+        <span class="len">~${s.est}s final · from ${s.raw}s of sermon · ${fmt(c.start)}–${fmt(c.end)}</span>
+        <button class="small" data-playclip="${ci}">▶ play section</button>
+        <div class="status">${STATUSES.map(([k, l]) => `<button class="${k} ${status === k ? 'on' : ''}" data-status="${ci}:${k}">${l}</button>`).join('')}</div>
+      </div>
+      <input type="text" class="hook" data-ci="${ci}" data-ck="hook" value="${esc(c.hook)}">
+      <div class="tools" style="margin-top:6px"><span>A/B hook:</span><input type="text" data-ci="${ci}" data-ck="hook_alt" value="${esc(c.hook_alt || '')}" placeholder="alternative hook for testing" style="flex:1;min-width:200px"><button class="small" data-swap="${ci}" title="Use the A/B hook as the main hook">⇄ swap</button></div>
+      <div class="why">${esc(c.why)}</div>
+      <div class="strip">${s.beats.map(b => `<div class="beat">${mock(c, b, s)}<div class="bmeta">${fmt(b.t)} · ${esc(b.kind)}</div><div class="bwords">${esc(b.words)}</div>${controls(ci, c, b)}</div>`).join('')}</div>
+      <div class="tools">
+        <button class="small" data-trim="${ci}">${trimMode[ci] ? '✂ Trimming: click first & last word' : '✂ Trim'}</button>
+        <span class="legend"><span style="color:#5b606b;text-decoration:line-through">auto-removed</span><span style="color:#ff8a8a;text-decoration:line-through">trimmed</span><span style="color:var(--accent);font-weight:700">highlighted</span></span>
+      </div>
+      <div class="transcript">${words}</div>
+      <div class="field"><span>Notes for Claude on this clip</span><textarea data-ci="${ci}" data-ck="notes" placeholder="e.g. start at 'People on this earth', use coins instead of crown, end after 'excellent edge'…">${esc(c.notes || '')}</textarea></div>
+      <details><summary>Post text (title &amp; caption)</summary>
+        <div class="field"><span>Shorts title</span><input type="text" data-ci="${ci}" data-ck="title" value="${esc(c.title)}"></div>
+        <div class="field"><span>Caption</span><textarea data-ci="${ci}" data-ck="caption">${esc(c.caption)}</textarea></div>
+      </details>
+    </section>`;
+  }).join('');
+  count();
+}
+
+async function save(refetch = true) {
+  const r = await fetch('/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plan) });
+  await r.json(); dirty = false;
+  if (refetch) { sb = await (await fetch('/storyboard.json')).json(); render(); } else count();
+  const b = document.getElementById('save'); b.textContent = 'Saved ✓'; setTimeout(() => b.textContent = 'Save', 1500);
+}
+
+document.addEventListener('click', async e => {
+  const t = e.target;
+  const fr = t.closest('[data-play]');
+  if (fr) { const t0 = +fr.dataset.play; return play(t0, t0 + 8, fr.dataset.label); }
+  if (t.dataset.playclip !== undefined) { const c = plan.clips[+t.dataset.playclip]; return play(c.start, c.end, c.hook); }
+  if (t.dataset.status) {
+    const [ci, k] = t.dataset.status.split(':'); const c = plan.clips[+ci];
+    c.status = c.status === k ? '' : k; c.approved = c.status === 'approved'; dirty = true; return render();
+  }
+  if (t.dataset.swap !== undefined) {
+    const c = plan.clips[+t.dataset.swap]; [c.hook, c.hook_alt] = [c.hook_alt || c.hook, c.hook]; dirty = true; return render();
+  }
+  if (t.dataset.del) {
+    const [ci, gi] = t.dataset.del.split(':').map(Number);
+    plan.clips[ci].graphics.splice(gi, 1); return save();
+  }
+  if (t.dataset.trim !== undefined) { const ci = +t.dataset.trim; trimMode[ci] = !trimMode[ci]; delete trimStart[ci]; return render(); }
+  if (t.dataset.wi !== undefined) {
+    const ci = +t.dataset.ci, wi = +t.dataset.wi, c = plan.clips[ci], ws = sb.clips.find(x => x.id === c.id).words;
+    if (!trimMode[ci]) return play(ws[wi].t, ws[wi].t + 6, ws[wi].w);
+    if (ws[wi].trimmed) {  // undo the trim containing this word
+      c.trims = (c.trims || []).filter(([a, b]) => !(a - 0.05 <= ws[wi].t && ws[wi].t <= b + 0.05));
+      return save();
+    }
+    if (trimStart[ci] === undefined) { trimStart[ci] = wi; return render(); }
+    const [i0, i1] = [Math.min(trimStart[ci], wi), Math.max(trimStart[ci], wi)];
+    const end = ws[i1 + 1] ? ws[i1 + 1].t : c.end;
+    (c.trims = c.trims || []).push([ws[i0].t, end]); delete trimStart[ci];
+    return save();
+  }
+});
+
+document.addEventListener('input', e => {
+  const t = e.target, ci = t.dataset.ci; if (ci === undefined) return;
+  const c = plan.clips[+ci]; dirty = true;
+  if (t.dataset.ck) c[t.dataset.ck] = t.value;
+  else if (t.dataset.note) { c.beat_notes = c.beat_notes || {}; if (t.value) c.beat_notes[t.dataset.note] = t.value; else delete c.beat_notes[t.dataset.note]; }
+  else if (t.dataset.k) {
+    const g = c.graphics[+t.dataset.g], k = t.dataset.k;
+    g[k] = ['emphasis', 'items'].includes(k) ? t.value.split(',').map(s => s.trim()).filter(Boolean) : t.value;
+    if (k === 'visual') return save();
+  }
+  count();
+});
+
+document.getElementById('save').onclick = () => save();
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+Promise.all([fetch('/plan.json').then(r => r.json()), fetch('/storyboard.json').then(r => r.json())]).then(([p, s]) => { plan = p; sb = s; render(); });
+</script>
+</body>
+</html>

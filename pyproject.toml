@@ -1,0 +1,16 @@
+[project]
+name = "sermon-clipper"
+version = "0.1.0"
+description = "Turn full sermon recordings into captioned, graded vertical shorts with motion graphics"
+authors = [
+    { name = "Temidayo Oladele" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "mlx-whisper>=0.4.3",
+    "numpy>=2.5.4",
+    "opencv-python-headless<5",
+]
+
+[tool.uv]
+package = false

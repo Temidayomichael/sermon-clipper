@@ -1,0 +1,21 @@
+.venv/
+jobs/
+render/node_modules/
+render/public/jobs/
+render/public/music/
+render/out/
+__pycache__/
+.DS_Store
+resolve/inbox/
+resolve/outbox/
+
+# Personal settings and media (each user has their own)
+config.json
+assets/music/*
+!assets/music/.gitkeep
+assets/broll/*
+!assets/broll/.gitkeep
+
+# Official Remotion agent skills: install with ./render/node_modules/.bin/remotion skills add (see README)
+.agents/
+.claude/skills/remotion-*
