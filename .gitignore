@@ -16,6 +16,18 @@ assets/music/*
 assets/broll/*
 !assets/broll/.gitkeep
 
-# Official Remotion agent skills: install with ./render/node_modules/.bin/remotion skills add (see README)
+# Third-party agent skills (Remotion, HyperFrames, ...): installed locally, not republished. Only our own skill is tracked.
 .agents/
-.claude/skills/remotion-*
+.claude/skills/*
+!.claude/skills/viral-clips/
+assets/broll_cache/
+assets/brand/*
+!assets/brand/.gitkeep
+
+# Downloaded / compiled tools (sources in tools/src are tracked)
+tools/realesrgan/
+tools/bin/
+
+# HyperFrames projects (contain sermon footage)
+videos/
+assets/fonts/

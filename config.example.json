@@ -7,5 +7,9 @@
     "languages": "English, with occasional Pidgin and Yoruba asides"
   },
   "vocab": "Lekki, Ikeja, Yaba, Danfo",
-  "brand": { "accent": "#FFD43B" }
+  "brand": { "accent": "#FFD43B" },
+  "caption_style": "editorial",
+  "end_card": { "title": "Watch the full message", "subtitle": "on YouTube", "handle": "@yourchannel" },
+  "pexels_api_key": "",
+  "pixabay_api_key": "paste your free key from https://pixabay.com/api/docs/ (or a Pexels key above)"
 }

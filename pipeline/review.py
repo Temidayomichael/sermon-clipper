@@ -63,7 +63,8 @@ def storyboard_data(job: str) -> dict:
             "words": ws,
             "beats": beats,
         })
-    return {"clips": out, "illustrations": _illustration_names()}
+    from .broll import api_key
+    return {"clips": out, "illustrations": _illustration_names(), "pexels": bool(api_key())}
 
 
 def thumb(job: str, t: float) -> Path:
@@ -114,6 +115,13 @@ def review(job: str, port: int = 8765) -> None:
     page = (ROOT / "pipeline" / "review.html").read_text()
     video = d / "source.mp4"
 
+    from .broll import api_key, resolve_job
+    if api_key():
+        print("Finding stock B-roll for the storyboard...")
+        try:
+            resolve_job(job)
+        except SystemExit as e:
+            print(f"  B-roll skipped: {e}")
     print("Preparing illustration previews (first time only)...")
     for n in _illustration_names() + ["glow"]:
         illustration(n)
@@ -147,6 +155,21 @@ def review(job: str, port: int = 8765) -> None:
                 pass
 
         def do_POST(self):
+            if self.path in ("/broll/next", "/broll/find"):
+                from .broll import next_clip, resolve_job
+                n = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(n) or b"{}")
+                try:
+                    if self.path == "/broll/next":
+                        next_clip(job, body["clip"], int(body["g"]))
+                    else:
+                        resolve_job(job)
+                    res = {"ok": True}
+                except SystemExit as e:
+                    res = {"ok": False, "error": str(e)}
+                except Exception as e:  # network trouble etc.
+                    res = {"ok": False, "error": f"B-roll search failed: {e}"}
+                return self._send(200, "application/json", json.dumps(res).encode())
             if self.path != "/save":
                 return self._send(404, "text/plain", b"not found")
             n = int(self.headers.get("Content-Length", 0))

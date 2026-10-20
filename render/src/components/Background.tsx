@@ -20,6 +20,21 @@ function jumpLevel(t: number, edits: number[]): number {
   return level ? 1.09 : 1;
 }
 
+/** Whip on jump cuts: a 0.1 s motion blur and tiny overshoot right after each edit (only the edits that toggle framing). */
+function whip(t: number, edits: number[]): number {
+  let lastToggle = -10;
+  let hit = -10;
+  for (const e of edits) {
+    if (e > t) break;
+    if (e - lastToggle >= 1.2) {
+      lastToggle = e;
+      hit = e;
+    }
+  }
+  const d = t - hit;
+  return d >= 0 && d < 0.1 ? 1 - d / 0.1 : 0;
+}
+
 /** Punch-in zoom: quick ease in, hold, gentle ease out. */
 function zoomAt(t: number, zooms: number[]): number {
   let z = 1;
@@ -48,12 +63,14 @@ function smooth(raw: number[], win: number, shot?: number[]): number[] {
   });
 }
 
-export const Background: React.FC<{
-  video: string;
-  crop: { t: number; x: number; fit?: boolean; cut?: boolean }[];
-  zooms: number[];
-  edits: number[];
-}> = ({ video, crop, zooms, edits }) => {
+export type Crop = { t: number; x: number; fit?: boolean; cut?: boolean }[];
+export type Framing = { vw: number; vh: number; left: number; top: number; blur: number; fit: number; boxTop: number; boxH: number };
+
+/**
+ * Where the 16:9 sermon video sits inside the vertical frame at the current frame: size, offset, blur and
+ * full-frame (fit) amount. Shared by the background and the person-only layer so they line up exactly.
+ */
+export function useFraming(crop: Crop, zooms: number[], edits: number[]): Framing {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const t = frame / fps;
@@ -79,21 +96,28 @@ export const Background: React.FC<{
     return { xs: smooth(rawX, Math.round(fps * 0.5), shot), fits: smooth(rawFit, Math.round(fps * 0.12)) };
   }, [crop, fps, durationInFrames]);
 
-  if (!video) {
-    return <AbsoluteFill style={{ background: "radial-gradient(circle at 50% 35%, #3a3f4b, #0d0e12 70%)" }} />;
-  }
-
   const i = Math.min(frame, xs.length - 1);
   const fit = fits[i] ?? 0;
-  const src = staticFile(video);
 
   // Vertical crop that follows the face.
-  const zoom = jumpLevel(t, edits) * zoomAt(t, zooms) * interpolate(frame, [0, durationInFrames], [1, 1.03]);
+  // Opening punch: start tight and snap out over the first half-second (pattern interrupt).
+  const intro = interpolate(t, [0, 0.45], [1.16, 1], { extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
+  const w = whip(t, edits);
+  const zoom = intro * jumpLevel(t, edits) * zoomAt(t, zooms) * (1 + 0.025 * w) * interpolate(frame, [0, durationInFrames], [1, 1.03]);
   const boxH = H - VIDEO_TOP;
   const vh = boxH * zoom;
   const vw = vh * SRC_ASPECT;
   const left = Math.min(0, Math.max(W - vw, W / 2 - (xs[i] ?? 0.5) * vw));
   const top = -(vh - boxH) * 0.3; // zoom toward the upper third, where faces sit
+  return { vw, vh, left, top, blur: w > 0.05 ? 7 * w : 0, fit, boxTop: VIDEO_TOP, boxH };
+}
+
+export const Background: React.FC<{ video: string; crop: Crop; zooms: number[]; edits: number[] }> = ({ video, crop, zooms, edits }) => {
+  const { vw, vh, left, top, blur, fit, boxH } = useFraming(crop, zooms, edits);
+  if (!video) {
+    return <AbsoluteFill style={{ background: "radial-gradient(circle at 50% 35%, #3a3f4b, #0d0e12 70%)" }} />;
+  }
+  const src = staticFile(video);
 
   return (
     <AbsoluteFill style={{ overflow: "hidden" }}>
@@ -114,7 +138,10 @@ export const Background: React.FC<{
           }}
         />
         <div style={{ position: "absolute", top: VIDEO_TOP, left: 0, width: W, height: boxH, overflow: "hidden" }}>
-          <OffthreadVideo src={src} style={{ position: "absolute", width: vw, height: vh, left, top, maxWidth: "none" }} />
+          <OffthreadVideo
+            src={src}
+            style={{ position: "absolute", width: vw, height: vh, left, top, maxWidth: "none", filter: blur ? `blur(${blur}px)` : undefined }}
+          />
           <div
             style={{
               position: "absolute",

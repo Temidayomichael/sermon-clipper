@@ -1,29 +1,16 @@
 import { loadFont as loadSerif } from "@remotion/google-fonts/InstrumentSerif";
 import { lightLeak } from "@remotion/effects/light-leak";
 import { useMemo } from "react";
-import { AbsoluteFill, OffthreadVideo, Solid, interpolate, staticFile, useVideoConfig } from "remotion";
+import { AbsoluteFill, Solid, interpolate, useVideoConfig } from "remotion";
 import { fonts } from "../fonts";
 import { CutawayGraphic, Word } from "../types";
 import { ILLUSTRATIONS } from "./illustrations";
+import { StockClip } from "./StockClip";
 import { P } from "./illustrations/palette";
 
 const serif = loadSerif("italic", { weights: ["400"], subsets: ["latin"] }).fontFamily;
 
 const norm = (w: string) => w.toLowerCase().replace(/[^\w']/g, "");
-
-/** Your own B-roll clip, given the same smooth navy-to-gold duotone as the illustrations. */
-const DuotoneClip: React.FC<{ src: string; t: number; duration: number }> = ({ src, t, duration }) => (
-  <AbsoluteFill style={{ transform: `scale(${1.05 + 0.07 * (t / duration)})` }}>
-    <OffthreadVideo
-      src={staticFile(src)}
-      muted
-      style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(1) contrast(1.25) brightness(1.05)" }}
-    />
-    {/* Gradient map: darks -> navy, lights -> gold */}
-    <AbsoluteFill style={{ background: P.gold, mixBlendMode: "multiply" }} />
-    <AbsoluteFill style={{ background: P.navy, mixBlendMode: "lighten" }} />
-  </AbsoluteFill>
-);
 
 /** Light-leak sweep, canvas-rendered with @remotion/effects. */
 const Leak: React.FC<{ progress: number; seed: number; strength?: number }> = ({ progress, seed, strength = 0.7 }) => {
@@ -79,7 +66,7 @@ export const Cutaway: React.FC<{ g: CutawayGraphic; words: Word[]; t: number }> 
 
   return (
     <AbsoluteFill style={{ opacity: fadeIn * fadeOut }}>
-      {Ill ? <Ill t={local} duration={g.duration} /> : <DuotoneClip src={g.visual.slice(6)} t={local} duration={g.duration} />}
+      {Ill ? <Ill t={local} duration={g.duration} /> : <StockClip src={`broll/${g.visual.slice(6)}`} look={g.look ?? "duotone"} t={local} duration={g.duration} />}
       <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(10,18,48,0.55) 0%, rgba(10,18,48,0) 45%)" }} />
       <div style={{ position: "absolute", top: 470, left: 60, right: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
         {visible.map((line, li) => (

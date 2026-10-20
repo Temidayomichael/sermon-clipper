@@ -129,7 +129,32 @@ AUDIO_CHAIN = (
 )
 
 
-def render_cut(src: Path, segs: list[tuple[float, float]], out: Path, vgrade: str, fps: int) -> None:
+def source_height(src: Path) -> int:
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=height",
+                        "-of", "csv=p=0", str(src)], capture_output=True, text=True)
+    try:
+        return int(r.stdout.strip().splitlines()[0])
+    except (ValueError, IndexError):
+        return 1080
+
+
+def clean_filters(height: int, mode: str) -> tuple[str, str]:
+    """Clean-up chain: (before upscaling, after upscaling).
+
+    Before: remove compression blocks and noise at the source's own resolution (cheaper and cleaner).
+    After: remove colour banding the upscale reveals. Sharpening happens later in the grade.
+    """
+    if mode == "off":
+        return "", ""
+    strength = mode if mode in ("light", "strong") else ("strong" if height < 720 else "light")
+    if strength == "strong":
+        return "deblock=filter=strong:block=8,nlmeans=s=2.2:p=7:r=9", "deband=1thr=0.015:2thr=0.015:3thr=0.015:blur=1"
+    return "hqdn3d=1.5:1.5:3:3", "deband=1thr=0.01:2thr=0.01:3thr=0.01:blur=1"
+
+
+def render_cut(src: Path, segs: list[tuple[float, float]], out: Path, vgrade: str, fps: int,
+               clean: tuple[str, str] = ("", ""), size: tuple[int, int] = (1920, 1080),
+               ai: dict | None = None) -> None:
     """Cut by exact frame and sample counts so picture and sound can never drift apart.
 
     1. Extract the clip's region to an intermediate at constant fps with uncompressed audio.
@@ -154,8 +179,25 @@ def render_cut(src: Path, segs: list[tuple[float, float]], out: Path, vgrade: st
         fc.append(f"[0:a]atrim=start_sample={f0 * spf}:end_sample={f1 * spf},asetpts=PTS-STARTPTS,"
                   f"afade=t=in:d={fade},afade=t=out:st={max(0, d - fade):.4f}:d={fade}[a{i}]")
     fc.append("".join(f"[v{i}][a{i}]" for i in range(len(segs))) + f"concat=n={len(segs)}:v=1:a=1[vc][ac]")
-    fc.append(f"[vc]scale=1920:1080:flags=lanczos:force_original_aspect_ratio=decrease,"
-              f"pad=1920:1080:(ow-iw)/2:(oh-ih)/2,{vgrade},format=yuv420p[vout]")
+    pre = f"{clean[0]}," if clean[0] else ""
+    post = f"{clean[1]}," if clean[1] else ""
+    w, h = size
+    if ai:
+        # AI path: concat at source resolution (cleaned), track the face there, AI-upscale the visible strip.
+        from .upscale import ai_upscale
+        lowres = out.parent / "lowres.mkv"
+        fc.append(f"[vc]{pre}format=yuv420p[vout]" if pre else "[vc]format=yuv420p[vout]")
+        fc.append(f"[ac]{AUDIO_CHAIN},aresample={sr}[aout]")
+        run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(region),
+             "-filter_complex", ";".join(fc), "-map", "[vout]", "-map", "[aout]",
+             "-c:v", "libx264", "-preset", "veryfast", "-crf", "8", "-c:a", "pcm_s16le", str(lowres)])
+        region.unlink(missing_ok=True)
+        keys = face_track(lowres)
+        ai_upscale(lowres, keys, out, f"{post}{vgrade}".rstrip(","), fps, size, ai.get("mix", 0.75))
+        lowres.unlink(missing_ok=True)
+        return
+    fc.append(f"[vc]{pre}scale={w}:{h}:flags=lanczos:force_original_aspect_ratio=decrease,"
+              f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,{post}{vgrade},format=yuv420p[vout]")
     fc.append(f"[ac]{AUDIO_CHAIN},aresample={sr}[aout]")
     run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(region),
          "-filter_complex", ";".join(fc), "-map", "[vout]", "-map", "[aout]",
@@ -296,7 +338,17 @@ def cut(job: str, only: str | None = None, retime: bool = False) -> list[str]:
         else:
             luma = measure_luma(src, c["start"], c["end"] - c["start"])
             print(f"   brightness {luma:.0f}/255 -> grading")
-            render_cut(src, segs, out_dir / "cut.mp4", grade_filter(luma, cfg), cfg["fps"])
+            sh = source_height(src)
+            clean = clean_filters(sh, cfg.get("clean", "auto"))
+            size = (3840, 2160) if cfg.get("output_4k") else (1920, 1080)
+            print(f"   source {sh}p -> clean-up: {'off' if not clean[0] else ('strong' if 'nlmeans' in clean[0] else 'light')}"
+                  f"{', 4K intermediate' if size[0] == 3840 else ''}")
+            from .upscale import available
+            mode = cfg.get("upscale", "off")
+            ai = {"mix": cfg.get("upscale_mix", 0.75)} if (mode == "ai" or (mode == "auto" and sh < 720)) and available() else None
+            if mode in ("ai", "auto") and not available() and (mode == "ai" or sh < 720):
+                print("   AI upscaling requested but Real-ESRGAN isn't installed (see pipeline/upscale.py); using regular upscaling")
+            render_cut(src, segs, out_dir / "cut.mp4", grade_filter(luma, cfg), cfg["fps"], clean, size, ai)
 
             print("   tracking face for vertical crop")
             crop = face_track(out_dir / "cut.mp4")
@@ -314,6 +366,14 @@ def cut(job: str, only: str | None = None, retime: bool = False) -> list[str]:
                 continue  # a caption fix mapped this word to "" (e.g. merging a mis-split name)
             cap_words.append({"w": text, "start": round(tl(w["start"]), 3),
                               "end": round(tl(w["end"]), 3), "hl": norm(text) in hl})
+
+        # Animated highlights: first occurrence of each marked word gets a circle / box / underline.
+        for m in c.get("marks", []):
+            key = norm(m.get("word", ""))
+            for cw in cap_words:
+                if norm(cw["w"]) == key and "mark" not in cw:
+                    cw["mark"] = m.get("style", "box")
+                    break
 
         graphics = []
         for g in c.get("graphics", []):

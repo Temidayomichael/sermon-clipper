@@ -104,6 +104,7 @@ def import_plan(job: str) -> None:
             "score": c.get("score"),
             "highlight_words": c.get("highlight_words", []),
             "zooms": [parse_ts(z) for z in c.get("zooms", [])],
+            "marks": c.get("marks", []),
             "trims": [[parse_ts(a), parse_ts(b)] for a, b in c.get("trims", [])],
             "graphics": c.get("graphics", []),
             "caption_fixes": c.get("caption_fixes", {}),

@@ -165,7 +165,7 @@ const Quote: React.FC<{ g: Extract<Graphic, { type: "quote" }>; brand: Brand }> 
 
 export const Graphics: React.FC<{ graphics: Graphic[]; brand: Brand; t: number }> = ({ graphics, brand, t }) => {
   // Only one graphic at a time: the most recent one that is still live.
-  const live = graphics.filter((g) => g.type !== "cutaway" && t >= g.start && t < g.start + g.duration);
+  const live = graphics.filter((g) => !["cutaway", "insert", "split", "embed"].includes(g.type) && t >= g.start && t < g.start + g.duration);
   const g = live[live.length - 1];
   if (!g) return null;
   switch (g.type) {

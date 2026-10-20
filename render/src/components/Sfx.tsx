@@ -4,11 +4,19 @@ import { ClipProps } from "../types";
 type Hit = { at: number; name: "whoosh" | "pop" | "hit" | "tick"; vol: number };
 
 /** Places sound effects on the timeline: impact on the hook, whooshes on graphics and zooms, pops on key words. */
-export const Sfx: React.FC<ClipProps> = ({ graphics, zooms, words, sfxVolume }) => {
+export const Sfx: React.FC<ClipProps> = ({ graphics, zooms, words, sfxVolume, endCard, duration }) => {
   const { fps } = useVideoConfig();
   const hits: Hit[] = [{ at: 0, name: "hit", vol: 0.9 }];
 
   for (const g of graphics) {
+    if (g.type === "embed") {
+      hits.push({ at: Math.max(0, g.start - 0.05), name: "hit", vol: 1 });
+      continue;
+    }
+    if (g.type === "insert" || g.type === "split") {
+      hits.push({ at: Math.max(0, g.start - 0.1), name: "whoosh", vol: g.type === "insert" ? 0.7 : 0.55 });
+      continue;
+    }
     if (g.type === "cutaway") {
       hits.push({ at: Math.max(0, g.start - 0.2), name: "whoosh", vol: 1 });
       hits.push({ at: g.start + g.duration - 0.25, name: "whoosh", vol: 0.6 });
@@ -23,6 +31,7 @@ export const Sfx: React.FC<ClipProps> = ({ graphics, zooms, words, sfxVolume }) 
       g.items.forEach((_, i) => hits.push({ at: g.start + (g.itemOffsets?.[i] ?? 0.25 + i * step), name: "tick", vol: 0.7 }));
     }
   }
+  if (endCard) hits.push({ at: duration, name: "hit", vol: 0.7 });
   for (const z of zooms) hits.push({ at: Math.max(0, z - 0.15), name: "whoosh", vol: 0.45 });
 
   let lastPop = -10;

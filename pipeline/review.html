@@ -113,9 +113,19 @@ function mock(c, b, sbClip) {
   const words = b.words || '';
   const capWords = words.split(' ').slice(0, 4).join(' ');
   let bg = `url(/thumb/${(b.t + 0.6).toFixed(1)}.jpg)`, overlay = '';
-  if (g && g.type === 'cutaway') {
+  const stockThumb = g && g.stock && g.stock.thumb ? `url(${esc(g.stock.thumb)})` : null;
+  if (g && (g.type === 'insert' || g.type === 'split')) {
+    const missing = !stockThumb ? `<div class="panel" style="border:1px dashed var(--warn)"><div class="t" style="color:var(--warn)">B-roll</div>${esc(g.query)}${sb.pexels ? '' : '<br><i>add a Pexels key to fetch</i>'}</div>` : '';
+    if (g.type === 'insert') {
+      bg = stockThumb || 'linear-gradient(#1b2236,#0b0f1a)';
+      overlay = missing + `<div class="cap">${esc(capWords)}</div>`;
+    } else {
+      overlay = `<div style="position:absolute;left:0;right:0;bottom:0;top:52%;background:${stockThumb || '#1b2236'} center/cover;border-top:4px solid var(--accent)"></div>` + missing + `<div class="cap">${esc(capWords)}</div>`;
+    }
+  } else if (g && g.type === 'cutaway') {
     const isNew = g.visual && g.visual.startsWith('new:');
-    bg = g.visual && g.visual.startsWith('broll:') ? 'linear-gradient(#14204A,#E9B824)'
+    bg = g.visual && g.visual.startsWith('stock:') ? (stockThumb ? `linear-gradient(rgba(20,32,74,.55),rgba(233,184,36,.35)), ${stockThumb}` : 'linear-gradient(#14204A,#E9B824)')
+      : g.visual && g.visual.startsWith('broll:') ? 'linear-gradient(#14204A,#E9B824)'
       : isNew || !sb.illustrations.includes(g.visual) ? 'url(/illus/glow.png)' : `url(/illus/${esc(g.visual)}.png)`;
     const em = new Set((g.emphasis || []).map(norm)), key = norm(g.keyword || '');
     const ws = words.split(' ').slice(0, 10).map(w => norm(w) === key ? `<span class="key">${esc(w)}</span>` : em.has(norm(w)) ? `<span class="em">${esc(w)}</span>` : esc(w)).join(' ');
@@ -144,13 +154,19 @@ function controls(ci, c, b) {
   const inp = (k, val, ph) => `<input type="text" data-ci="${ci}" data-g="${b.g}" data-k="${k}" value="${esc(val)}" placeholder="${ph}">`;
   if (g) {
     if (g.type === 'cutaway') {
-      const opts = sb.illustrations.map(n => `<option ${g.visual===n?'selected':''}>${n}</option>`).join('');
+      const opts = sb.illustrations.map(n => `<option ${g.visual===n?'selected':''}>${n}</option>`).join('') + `<option value="stock:${esc(g.keyword || 'cinematic')}">stock footage…</option>`;
       f += `<select data-ci="${ci}" data-g="${b.g}" data-k="visual">${opts}${g.visual && !sb.illustrations.includes(g.visual) ? `<option selected>${esc(g.visual)}</option>` : ''}</select>`;
       f += inp('emphasis', (g.emphasis||[]).join(', '), 'italic words');
       f += inp('keyword', g.keyword || '', 'red keyword');
     } else if (g.type === 'list') { f += inp('title', g.title, 'list title') + inp('items', (g.items||[]).join(', '), 'items, comma separated'); }
     else if (g.type === 'quote' || g.type === 'keyword') { f += inp('text', g.text, 'text'); }
     else if (g.type === 'scripture') { f += inp('ref', g.ref, 'reference') + inp('text', g.text || '', 'verse text'); }
+    else if (g.type === 'insert' || g.type === 'split') { f += inp('query', g.query || '', 'stock search words'); }
+    if (g.type === 'insert' || g.type === 'split' || (g.type === 'cutaway' && String(g.visual || '').startsWith('stock:'))) {
+      if (g.type === 'cutaway') f += inp('visual', g.visual, 'stock:search words');
+      f += `<button class="small" data-broll="${ci}:${b.g}" title="Swap for the next stock clip">↻ next clip</button> <button class="small" data-brollfind="1" title="Search again after editing the words">🔍 find</button>`;
+      if (g.stock && g.stock.credit) f += `<div class="bmeta">Video: ${esc(g.stock.credit)} / Pexels</div>`;
+    }
     f += `<button class="small" data-del="${ci}:${b.g}" title="Remove this graphic">✕ remove</button>`;
   }
   f += `<input type="text" class="note" data-ci="${ci}" data-note="${key}" value="${esc(note)}" placeholder="note for this beat…">`;
@@ -180,6 +196,7 @@ function render() {
         <span class="legend"><span style="color:#5b606b;text-decoration:line-through">auto-removed</span><span style="color:#ff8a8a;text-decoration:line-through">trimmed</span><span style="color:var(--accent);font-weight:700">highlighted</span></span>
       </div>
       <div class="transcript">${words}</div>
+      <div class="tools"><span>Highlight marks:</span><input type="text" data-ci="${ci}" data-marks="1" value="${esc((c.marks || []).map(m => m.word + ':' + m.style).join(', '))}" placeholder="excellence:circle, rent:box, heaven:underline" style="flex:1;min-width:220px"></div>
       <div class="field"><span>Notes for Claude on this clip</span><textarea data-ci="${ci}" data-ck="notes" placeholder="e.g. start at 'People on this earth', use coins instead of crown, end after 'excellent edge'…">${esc(c.notes || '')}</textarea></div>
       <details><summary>Post text (title &amp; caption)</summary>
         <div class="field"><span>Shorts title</span><input type="text" data-ci="${ci}" data-ck="title" value="${esc(c.title)}"></div>
@@ -209,6 +226,18 @@ document.addEventListener('click', async e => {
   if (t.dataset.swap !== undefined) {
     const c = plan.clips[+t.dataset.swap]; [c.hook, c.hook_alt] = [c.hook_alt || c.hook, c.hook]; dirty = true; return render();
   }
+  if (t.dataset.broll) {
+    const [ci, gi] = t.dataset.broll.split(':').map(Number);
+    t.textContent = '…'; await save(false);
+    const r = await fetch('/broll/next', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clip: plan.clips[ci].id, g: gi }) });
+    const j = await r.json(); if (!j.ok) alert(j.error);
+    plan = await (await fetch('/plan.json')).json(); return render();
+  }
+  if (t.dataset.brollfind) {
+    t.textContent = '…'; await save(false);
+    const j = await (await fetch('/broll/find', { method: 'POST' })).json(); if (!j.ok) alert(j.error);
+    plan = await (await fetch('/plan.json')).json(); sb = await (await fetch('/storyboard.json')).json(); return render();
+  }
   if (t.dataset.del) {
     const [ci, gi] = t.dataset.del.split(':').map(Number);
     plan.clips[ci].graphics.splice(gi, 1); return save();
@@ -233,6 +262,9 @@ document.addEventListener('input', e => {
   const t = e.target, ci = t.dataset.ci; if (ci === undefined) return;
   const c = plan.clips[+ci]; dirty = true;
   if (t.dataset.ck) c[t.dataset.ck] = t.value;
+  else if (t.dataset.marks) {
+    c.marks = t.value.split(',').map(s => s.trim()).filter(Boolean).map(s => { const [word, style] = s.split(':').map(x => x.trim()); return { word, style: ['circle', 'box', 'underline'].includes(style) ? style : 'circle' }; });
+  }
   else if (t.dataset.note) { c.beat_notes = c.beat_notes || {}; if (t.value) c.beat_notes[t.dataset.note] = t.value; else delete c.beat_notes[t.dataset.note]; }
   else if (t.dataset.k) {
     const g = c.graphics[+t.dataset.g], k = t.dataset.k;

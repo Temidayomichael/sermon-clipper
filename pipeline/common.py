@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -49,6 +50,25 @@ DEFAULT_CONFIG = {
     "brand": {"accent": "#FFD43B", "panel": "rgba(10,10,14,0.82)", "text": "#FFFFFF"},
     "music_volume": 0.3,
     "sfx_volume": 0.5,
+    # Caption look: "bold" (heavy uppercase, TikTok style) or "editorial" (clean words, gold italic key words).
+    "caption_style": "bold",
+    # Stock B-roll looks: "duotone" (navy/gold, like the illustrations) or "natural" (lightly graded).
+    "broll_look": {"cutaway": "duotone", "insert": "natural", "split": "natural"},
+    # Name tag a few seconds in (uses preacher name/church) and closing card. Logo: assets/brand/logo.png.
+    "lower_third": True,
+    "end_card": {"enabled": True, "title": "Watch the full message", "subtitle": "on YouTube", "handle": "", "seconds": 2.2},
+    # Video clean-up before upscaling: "auto" (strong for sources under 720p, light otherwise), "light", "strong", "off".
+    "clean": "auto",
+    # AI upscaling (Real-ESRGAN) of the visible strip: "off", "ai" (always), "auto" (only for sources under 720p).
+    # Slow: roughly 30-35 minutes per minute of finished clip on an M3 Pro. upscale_mix blends AI with regular
+    # upscaling (1.0 = pure AI; lower keeps faces more natural).
+    "upscale": "off",
+    "upscale_mix": 0.75,
+    # Render finished clips at 2160x3840 (4K) instead of 1080x1920. Helps YouTube quality; slower, bigger files.
+    "output_4k": False,
+    # Free key from https://www.pexels.com/api/ (or set PEXELS_API_KEY).
+    "pexels_api_key": "",
+    "pixabay_api_key": "",
 }
 
 
@@ -61,6 +81,10 @@ def config() -> dict:
                 cfg[k].update(v)
             else:
                 cfg[k] = v
+    if os.environ.get("SERMON_CLIPPER_4K"):
+        cfg["output_4k"] = True
+    if os.environ.get("SERMON_CLIPPER_AI_UPSCALE"):
+        cfg["upscale"] = "ai"
     return cfg
 
 

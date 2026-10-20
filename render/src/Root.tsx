@@ -32,7 +32,8 @@ export const Root: React.FC = () => (
     height={H}
     fps={30}
     durationInFrames={120}
-    defaultProps={{ name: "chess" }}
+    defaultProps={{ name: "chess", seconds: 4 }}
+    calculateMetadata={({ props }) => ({ durationInFrames: Math.round((props.seconds ?? 4) * 30) })}
   />
   <Composition
     id="Short"
@@ -44,7 +45,7 @@ export const Root: React.FC = () => (
     defaultProps={sample}
     calculateMetadata={({ props }) => ({
       fps: props.fps,
-      durationInFrames: Math.ceil((props.duration + 0.4) * props.fps),
+      durationInFrames: Math.ceil((props.duration + (props.endCard ? props.endCard.seconds : 0.4)) * props.fps),
     })}
   />
   </>
